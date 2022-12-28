@@ -9,8 +9,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(laser_geometry REQUIRED)
+find_package(tf2 REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -28,7 +30,7 @@ add_library(${PROJECT_NAME} SHARED
   src/obstacle_detector_component.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp  sensor_msgs rclcpp_components laser_geometry)
+ament_target_dependencies(${PROJECT_NAME} rclcpp  sensor_msgs nav_msgs rclcpp_components tf2 tf2_geometry_msgs)
 rclcpp_components_register_nodes(${PROJECT_NAME} "dwa_ros2::ObstacleDetector")
 
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
