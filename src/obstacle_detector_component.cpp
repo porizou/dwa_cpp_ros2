@@ -90,6 +90,20 @@ void ObstacleDetector::laserCallback(const sensor_msgs::msg::LaserScan::SharedPt
         data[i * n_x + j] = 100;
       }
     }
+  // OccupancyGridをPublishする
+  nav_msgs::msg::OccupancyGrid occupancy_grid;
+  occupancy_grid.header.stamp = _msg->header.stamp;
+  occupancy_grid.header.frame_id = _msg->header.frame_id;
+  occupancy_grid.info.resolution = resolution_;
+  occupancy_grid.info.width = n_x;
+  occupancy_grid.info.height = n_y;
+  occupancy_grid.info.origin.position.x = x_min;
+  occupancy_grid.info.origin.position.y = y_min;
+  occupancy_grid.info.origin.position.z = 0.0;
+  occupancy_grid.data = data;
+
+  // OccupancyGridをpublishする
+  occupancy_grid_pub_->publish(occupancy_grid);
 }
 
 }  // namespace dwa_ros2
