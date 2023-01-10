@@ -14,6 +14,9 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(tf2 REQUIRED)
 
+include_directories(include)
+
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -26,13 +29,16 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_library(${PROJECT_NAME} SHARED
+add_library(dwa_ros2 SHARED
   src/obstacle_detector_component.cpp
+  src/dwa_ros2.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp  sensor_msgs nav_msgs rclcpp_components tf2 tf2_geometry_msgs)
-rclcpp_components_register_nodes(${PROJECT_NAME} "dwa_ros2::ObstacleDetector")
+ament_target_dependencies(dwa_ros2 rclcpp  sensor_msgs nav_msgs rclcpp_components tf2 tf2_geometry_msgs)
 
-install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::ObstacleDetector")
+rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::DWA")
+
+install(TARGETS ${PROJECT_NAME} DESTINATION lib )
 # Call ament build system
 ament_package()

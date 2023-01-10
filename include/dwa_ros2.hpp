@@ -10,8 +10,8 @@ namespace dwa_ros2
 class DWA : public rclcpp::Node
 {
 public:
-  DWA();
-  
+  DWA(const rclcpp::NodeOptions & options);
+  void obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr _msg);
 private:
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;

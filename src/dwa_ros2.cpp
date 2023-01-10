@@ -1,27 +1,22 @@
 #include "rclcpp/rclcpp.hpp"
 #include "dwa_ros2.hpp"
+using std::placeholders::_1;
 
 namespace dwa_ros2
 {
 
-DWA::DWA() : Node("dwa_ros2")
+DWA::DWA(const rclcpp::NodeOptions & options) : Node("dwa_ros2", options)
 {
-    // OccupancyGridトピックをSubsucribe
-    auto callback =
-      [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) -> void
-      {
-        // OccupancyGridメッセージを処理するコードをここに書く
-      };
-    occupancy_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>("occupancy_grid", rclcpp::QoS(10), callback);
-
-    // OdometryトピックをSubsucribe
-    auto callback =
-      [this](const nav_msgs::msg::Odometry::SharedPtr msg) -> void
-      {
-        // Odometryメッセージを処理するコードをここに書く
-      };
-    odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odometry", rclcpp::QoS(10), callback);
+    occupancy_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>("occupancy_grid", 10, std::bind(&DWA::obstacleCallback, this, _1));
+    //odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odometry", rclcpp::QoS(10), callback);
 }
+
+void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr _msg)
+{
+
+}
+
+
 
 } // namespace dwa_ros2
 
