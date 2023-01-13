@@ -4,11 +4,13 @@
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 #include <vector>
 #include <stdio.h>
 #include <math.h>
 #include <algorithm>
-
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include "data_struct.hpp"
 
 
@@ -18,21 +20,22 @@ class DWA : public rclcpp::Node
 {
 public:
   DWA(const rclcpp::NodeOptions & options);
-  void obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr _msg);
-  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr _msg);
+  void obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+  void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
 private:
   //制御パラメータ
-  Parameter config;
+  Parameter param_;
   //現在状態変数
-  State current_state;
+  State current_state_;
   //ゴール位置
-  std::pair<double, double> goal;
+  std::pair<double, double> goal_;
   //障害物位置
-  std::vector<std::pair<double, double>> obstacles;
+  std::vector<std::pair<double, double>> obstacles_;
 
   //パラメータ設定
-  void dwaInitialize();
+  void updateParameter(void);
+
   /*軌道予測関数
     引数：v : x軸速度[m/s] omega : 回転速度[rad/s]
     戻り値 : 軌道
@@ -73,6 +76,7 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
 };
 
 } // namespace dwa_ros2

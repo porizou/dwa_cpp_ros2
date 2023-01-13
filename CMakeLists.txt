@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(tf2 REQUIRED)
@@ -34,7 +35,7 @@ add_library(dwa_ros2 SHARED
   src/dwa_ros2.cpp
 )
 
-ament_target_dependencies(dwa_ros2 rclcpp  sensor_msgs nav_msgs rclcpp_components tf2 tf2_geometry_msgs)
+ament_target_dependencies(dwa_ros2 rclcpp  sensor_msgs nav_msgs rclcpp_components tf2 tf2_geometry_msgs geometry_msgs)
 
 rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::ObstacleDetector")
 rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::DWA")
