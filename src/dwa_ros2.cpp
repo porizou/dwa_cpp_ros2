@@ -154,6 +154,33 @@ double DWA::calcGoalCost(std::vector<State> trajectory)
 
 double DWA::calcObstacleCost(std::vector<State> trajectory)
 {
+    double cost = 0.0;
+    double min_distance = std::numeric_limits<double>::max();
+
+    for (auto &state : trajectory)
+    {
+        for (auto &obstacle : obstacles_)
+        {
+            // Calculate the distance between the state and the obstacle
+            double distance = std::sqrt(std::pow(state.x - obstacle.first, 2) + std::pow(state.y - obstacle.second, 2));
+
+            // Check if the distance is lower than the minimum distance
+            if (distance < min_distance)
+            {
+                min_distance = distance;
+            }
+        }
+    }
+    // Calculate the obstacle cost
+    if (min_distance <= param_.robot_radius)
+    {
+        cost = 1.0 - min_distance / param_.robot_radius;
+    }
+    else
+    {
+        cost = 0.0;
+    }
+    return cost;
 }
 
 double DWA::calcSpeedCost(std::vector<State> trajectory)
@@ -246,11 +273,6 @@ std::vector<double> DWA::calcDynamicWindow(void)
     // Return the dynamic window
     return dw;
 }
-
-void DWA::robotControl(double v, double omega)
-{
-}
-
 } // namespace dwa_ros2
 
 // Components

@@ -68,12 +68,6 @@ private:
   //Dynamic Window計算
   std::vector<double> calcDynamicWindow(void);
 
-    /*ロボット制御関数
-    引数：v : x軸速度[m/s] omega : 回転速度[rad/s] 
-    戻り値 : なし
-  */
-  void robotControl(double v, double omega);
-
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
