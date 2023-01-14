@@ -150,6 +150,18 @@ std::vector<State> DWA::predictTrajectory(double v, double omega)
 
 double DWA::calcGoalCost(std::vector<State> trajectory)
 {
+    double cost = 0.0;
+
+    // Get the final state
+    State final_state = trajectory[trajectory.size() - 1];
+
+    // Calculate the distance to the goal
+    double distance = std::sqrt(std::pow(final_state.x - goal_.first, 2) + std::pow(final_state.y - goal_.second, 2));
+
+    // Calculate the goal cost
+    cost = std::exp(-distance);
+
+    return cost;
 }  
 
 double DWA::calcObstacleCost(std::vector<State> trajectory)
@@ -185,6 +197,15 @@ double DWA::calcObstacleCost(std::vector<State> trajectory)
 
 double DWA::calcSpeedCost(std::vector<State> trajectory)
 {
+    double cost = 0.0;
+
+    // Get the final state
+    State final_state = trajectory[trajectory.size() - 1];
+
+    // Calculate the speed cost
+    cost = std::exp(-(std::pow(final_state.v - param_.min_speed, 2) / (2 * std::pow(param_.v_resolution, 2))));
+
+    return cost;
 }
 
 void DWA::publishTwist(double v, double omega)
