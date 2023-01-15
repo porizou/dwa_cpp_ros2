@@ -7,15 +7,21 @@
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
+
 #include <vector>
 #include <stdio.h>
 #include <math.h>
 #include <algorithm>
+
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include "data_struct.hpp"
+#include <tf2/exceptions.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 
+#include "data_struct.hpp"
 
 namespace dwa_ros2
 {
@@ -37,6 +43,10 @@ private:
   //障害物位置
   std::vector<std::pair<double, double>> obstacles_;
   std::string frame_id_;
+
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  
   //パラメータ設定
   void initParameter(void);
   //パラメータ更新
@@ -74,6 +84,8 @@ private:
   void publishPath(std::vector<State>& trajectory);
 
   bool isArrivedAtGoal(void);
+
+  void transformObstacles(void);
 
   //DWA実行
   void dwaControl(void);

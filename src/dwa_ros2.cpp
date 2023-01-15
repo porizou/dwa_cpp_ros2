@@ -48,6 +48,7 @@ void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
             obstacles_.push_back(std::make_pair(world_x, world_y));
         }
     }
+    transformObstacles();
     dwaControl();
 }
 
@@ -68,7 +69,6 @@ void DWA::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
     current_state_.theta = yaw;
-
 }
 
 void DWA::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
@@ -115,7 +115,7 @@ void DWA::initParameter(void)
     param_.speed_cost_gain = this->declare_parameter("speed_cost_gain", 0.5);
 
     // Declare obstacle cost gain parameter
-    param_.obstacle_cost_gain = this->declare_parameter("obstacle_cost_gain", 0.0);
+    param_.obstacle_cost_gain = this->declare_parameter("obstacle_cost_gain", 0.6);
 
     // Declare robot radius parameter
     param_.robot_radius = this->declare_parameter("robot_radius", 0.1);
@@ -305,6 +305,48 @@ bool DWA::isArrivedAtGoal(void)
 {
     double distance = std::sqrt(std::pow(current_state_.x - goal_.first, 2) + std::pow(current_state_.y - goal_.second, 2));
     return distance <= param_.goal_tolerance ? true : false;
+}
+
+void DWA::transformObstacles(void)
+{
+    if (obstacles_.empty()) 
+    {
+        RCLCPP_ERROR(this->get_logger(), "No obstacles to transform");
+        return;
+    }
+
+    // Create a tf2 buffer and listener
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+    // Create a transform message to hold the result
+    geometry_msgs::msg::TransformStamped transform_msg;
+
+    try {
+        // Get the transform from base_link to odom
+        transform_msg = tf_buffer_->lookupTransform(frame_id_, "base_link", tf2::TimePointZero);
+    } catch (tf2::TransformException &ex) {
+        RCLCPP_ERROR(this->get_logger(), "Error looking up transform: %s", ex.what());
+        return;
+    }
+
+    // Create a tf2 transform from the transform message
+    tf2::Transform transform;
+    tf2::fromMsg(transform_msg.transform, transform);
+
+    for (size_t i = 0; i < obstacles_.size(); i++) {
+        // Create a point in base_link frame
+        tf2::Vector3 point_base_link;
+        point_base_link.setX(obstacles_[i].first);
+        point_base_link.setY(obstacles_[i].second);
+
+        // Transform the point to the odom frame
+        tf2::Vector3 point_odom = transform * point_base_link;
+
+        // Update the obstacle position in the odom frame
+        obstacles_[i].first = point_odom.getX();
+        obstacles_[i].second = point_odom.getY();
+    }
 }
 
 void DWA::dwaControl(void)
