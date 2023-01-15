@@ -38,6 +38,8 @@ private:
   std::vector<std::pair<double, double>> obstacles_;
   std::string frame_id_;
   //パラメータ設定
+  void initParameter(void);
+  //パラメータ更新
   void updateParameter(void);
 
   /*軌道予測関数
@@ -69,7 +71,7 @@ private:
 
   void publishCurrentPose(void);
 
-  void publishPath(const std::vector<State>& trajectory);
+  void publishPath(std::vector<State>& trajectory);
 
   bool isArrivedAtGoal(void);
 

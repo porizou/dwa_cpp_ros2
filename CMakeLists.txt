@@ -41,7 +41,7 @@ rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::ObstacleDetector")
 rclcpp_components_register_nodes(dwa_ros2 "dwa_ros2::DWA")
 
 install(TARGETS ${PROJECT_NAME} DESTINATION lib )
-install(DIRECTORY launch/
+install(DIRECTORY launch/ config/
   DESTINATION share/${PROJECT_NAME}/
 )
 # Call ament build system

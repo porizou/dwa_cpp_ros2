@@ -14,11 +14,11 @@ DWA::DWA(const rclcpp::NodeOptions & options) : Node("dwa_ros2", options)
     predicted_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("predicted_path", 10);
     goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&DWA::goalCallback, this, _1));
     // Initialize params
-    updateParameter();
+    initParameter();
     // Initialize current state
     current_state_ = {0.0, 0.0, 0.0, 0.0, 0.0};
 
-    goal_ = std::make_pair(0.0, 0.0);
+    goal_ = std::make_pair(0.0, -0.5);
 }
 
 void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
@@ -48,7 +48,7 @@ void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
             obstacles_.push_back(std::make_pair(world_x, world_y));
         }
     }
-        dwaControl();
+    dwaControl();
 }
 
 void DWA::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -79,13 +79,13 @@ void DWA::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     RCLCPP_INFO(this->get_logger(), "Updated goal position: x = %f, y = %f", goal_.first, goal_.second);
 }
 
-void DWA::updateParameter(void) 
+void DWA::initParameter(void) 
 {
     // Declare max speed parameter
-    param_.max_speed = this->declare_parameter("max_speed", 0.2);
+    param_.max_speed = this->declare_parameter("max_speed", 0.4);
 
     // Declare min speed parameter
-    param_.min_speed = this->declare_parameter("min_speed", -0.1);
+    param_.min_speed = this->declare_parameter("min_speed", -0.0);
 
     // Declare max omega parameter
     param_.max_omega = this->declare_parameter("max_omega", 40.0 * M_PI / 180.0);
@@ -103,7 +103,7 @@ void DWA::updateParameter(void)
     param_.omega_resolution = this->declare_parameter("omega_resolution", 0.1 * M_PI / 180.0);
 
     // Declare predict time parameter
-    param_.predict_time = this->declare_parameter("predict_time", 1.0);
+    param_.predict_time = this->declare_parameter("predict_time", 1.5);
 
     // Declare dt parameter
     param_.dt = this->declare_parameter("dt", 0.1);
@@ -123,6 +123,31 @@ void DWA::updateParameter(void)
     param_.goal_tolerance = this->declare_parameter("goal_tolerance", 0.2);
 
     frame_id_ = this->declare_parameter("frame_id_", "odom");
+}
+
+
+void DWA::updateParameter(void)
+{
+    auto update_param = [&](const std::string& name) {
+        return this->get_parameter(name).get_value<double>();
+    };
+
+    auto update_param_log = [&](const std::string& name, double& variable) {
+        variable = update_param(name);
+        //RCLCPP_INFO(this->get_logger(), "Updated %s: %f", name.c_str(), variable);
+    };
+
+    update_param_log("max_speed", param_.max_speed);
+    update_param_log("min_speed", param_.min_speed);
+    update_param_log("max_omega", param_.max_omega);
+    update_param_log("max_accel", param_.max_accel);
+    update_param_log("max_accel_omega", param_.max_accel_omega);
+    update_param_log("v_resolution", param_.v_resolution);
+    update_param_log("omega_resolution", param_.omega_resolution);
+    update_param_log("dt", param_.dt);    
+    update_param_log("goal_cost_gain", param_.goal_cost_gain);
+    update_param_log("speed_cost_gain", param_.speed_cost_gain);
+    update_param_log("obstacle_cost_gain", param_.obstacle_cost_gain);
 }
 
 std::vector<State> DWA::predictTrajectory(double v, double omega)
@@ -254,7 +279,7 @@ void DWA::publishCurrentPose(void)
     current_pose_pub_->publish(std::move(current_pose));
 }
 
-void DWA::publishPath(const std::vector<State>& trajectory)
+void DWA::publishPath(std::vector<State>& trajectory)
 {
     auto path = std::make_unique<nav_msgs::msg::Path>();
 
@@ -264,13 +289,15 @@ void DWA::publishPath(const std::vector<State>& trajectory)
         pose.pose.position.x = state.x;
         pose.pose.position.y = state.y;
         tf2::Quaternion q; 
-        q.setRPY(0, 0, state.theta); 
-        pose.pose.orientation = tf2::toMsg(q); 
+        q.setRPY(0, 0, state.theta);
+        pose.pose.orientation = tf2::toMsg(q);
+        pose.header.stamp = this->now();
+        pose.header.frame_id = frame_id_;
         path->poses.push_back(pose);
     }
 
     path->header.frame_id = frame_id_;
-    path->header.stamp = rclcpp::Clock().now();
+    path->header.stamp = this->now();
     predicted_path_pub_->publish(std::move(path));
 }
 
@@ -282,6 +309,8 @@ bool DWA::isArrivedAtGoal(void)
 
 void DWA::dwaControl(void)
 {
+    // Update Parameter
+    updateParameter();
     // Get the dynamic window
     std::vector<double> dw = calcDynamicWindow();
 
