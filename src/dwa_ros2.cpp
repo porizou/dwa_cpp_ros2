@@ -10,13 +10,15 @@ DWA::DWA(const rclcpp::NodeOptions & options) : Node("dwa_ros2", options)
     occupancy_grid_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>("occupancy_grid", 10, std::bind(&DWA::obstacleCallback, this, _1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odom", 10, std::bind(&DWA::odomCallback, this, _1));
     twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    current_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose", 10);
 
+    goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&DWA::goalCallback, this, _1));
     // Initialize params
     updateParameter();
     // Initialize current state
     current_state_ = {0.0, 0.0, 0.0, 0.0, 0.0};
 
-    goal_ = std::make_pair(3.0, 5.0);
+    goal_ = std::make_pair(0.0, 0.0);
 }
 
 void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
@@ -46,6 +48,7 @@ void DWA::obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
             obstacles_.push_back(std::make_pair(world_x, world_y));
         }
     }
+        dwaControl();
 }
 
 void DWA::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -65,48 +68,59 @@ void DWA::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
     current_state_.theta = yaw;
+
+}
+
+void DWA::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+{
+    // Update goal position
+    goal_.first = msg->pose.position.x;
+    goal_.second = msg->pose.position.y;
+    RCLCPP_INFO(this->get_logger(), "Updated goal position: x = %f, y = %f", goal_.first, goal_.second);
 }
 
 void DWA::updateParameter(void) 
 {
     // Declare max speed parameter
-    param_.max_speed = this->declare_parameter("max_speed", 0.0);
+    param_.max_speed = this->declare_parameter("max_speed", 0.2);
 
     // Declare min speed parameter
-    param_.min_speed = this->declare_parameter("min_speed", 0.0);
+    param_.min_speed = this->declare_parameter("min_speed", -0.1);
 
     // Declare max omega parameter
-    param_.max_omega = this->declare_parameter("max_omega", 0.0);
+    param_.max_omega = this->declare_parameter("max_omega", 40.0 * M_PI / 180.0);
 
     // Declare max accel parameter
-    param_.max_accel = this->declare_parameter("max_accel", 0.0);
+    param_.max_accel = this->declare_parameter("max_accel", 1.0);
 
     // Declare max accel omega parameter
-    param_.max_accel_omega = this->declare_parameter("max_accel_omega", 0.0);
+    param_.max_accel_omega = this->declare_parameter("max_accel_omega", 40.0 * M_PI / 180.0);
 
     // Declare v resolution parameter
-    param_.v_resolution = this->declare_parameter("v_resolution", 0.0);
+    param_.v_resolution = this->declare_parameter("v_resolution", 0.01);
 
     // Declare omega resolution parameter
-    param_.omega_resolution = this->declare_parameter("omega_resolution", 0.0);
+    param_.omega_resolution = this->declare_parameter("omega_resolution", 0.1 * M_PI / 180.0);
 
     // Declare predict time parameter
-    param_.predict_time = this->declare_parameter("predict_time", 0.0);
+    param_.predict_time = this->declare_parameter("predict_time", 1.0);
 
     // Declare dt parameter
-    param_.dt = this->declare_parameter("dt", 0.0);
+    param_.dt = this->declare_parameter("dt", 0.1);
 
     // Declare goal cost gain parameter
-    param_.goal_cost_gain = this->declare_parameter("goal_cost_gain", 0.0);
+    param_.goal_cost_gain = this->declare_parameter("goal_cost_gain", 0.5);
 
     // Declare speed cost gain parameter
-    param_.speed_cost_gain = this->declare_parameter("speed_cost_gain", 0.0);
+    param_.speed_cost_gain = this->declare_parameter("speed_cost_gain", 0.5);
 
     // Declare obstacle cost gain parameter
     param_.obstacle_cost_gain = this->declare_parameter("obstacle_cost_gain", 0.0);
 
     // Declare robot radius parameter
-    param_.robot_radius = this->declare_parameter("robot_radius", 0.0);
+    param_.robot_radius = this->declare_parameter("robot_radius", 0.1);
+
+    frame_id_ = this->declare_parameter("frame_id_", "odom");
 }
 
 std::vector<State> DWA::predictTrajectory(double v, double omega)
@@ -168,7 +182,9 @@ double DWA::calcObstacleCost(std::vector<State> trajectory)
 {
     double cost = 0.0;
     double min_distance = std::numeric_limits<double>::max();
-
+    if(obstacles_.empty()){
+        return 1.0;
+    }
     for (auto &state : trajectory)
     {
         for (auto &obstacle : obstacles_)
@@ -186,11 +202,12 @@ double DWA::calcObstacleCost(std::vector<State> trajectory)
     // Calculate the obstacle cost
     if (min_distance <= param_.robot_radius)
     {
-        cost = 1.0 - min_distance / param_.robot_radius;
+        // If the robot hits an obstacle, the cost is 0
+        cost = 0.0; 
     }
     else
     {
-        cost = 0.0;
+        cost = 1.0 - min_distance / param_.robot_radius;
     }
     return cost;
 }
@@ -203,17 +220,31 @@ double DWA::calcSpeedCost(std::vector<State> trajectory)
     State final_state = trajectory[trajectory.size() - 1];
 
     // Calculate the speed cost
-    cost = std::exp(-(std::pow(final_state.v - param_.min_speed, 2) / (2 * std::pow(param_.v_resolution, 2))));
+    cost = std::exp(-(std::pow(final_state.v - param_.max_speed, 2) / (2 * std::pow(param_.v_resolution, 2))));
 
     return cost;
 }
 
 void DWA::publishTwist(double v, double omega)
 {
+    //RCLCPP_INFO(this->get_logger(), "linear.x: %lf, angular.z: %lf", v, omega);
     auto twist = std::make_unique<geometry_msgs::msg::Twist>();
     twist->linear.x = v;
     twist->angular.z = omega;
     twist_pub_->publish(std::move(twist));
+}
+
+void DWA::publishCurrentPose(void)
+{
+    auto current_pose = std::make_unique<geometry_msgs::msg::PoseStamped>();
+    current_pose->header.stamp = this->now();
+    current_pose->header.frame_id = frame_id_;
+    current_pose->pose.position.x = current_state_.x;
+    current_pose->pose.position.y = current_state_.y;
+    tf2::Quaternion q; 
+    q.setRPY(0, 0, current_state_.theta); 
+    current_pose->pose.orientation = tf2::toMsg(q);
+    current_pose_pub_->publish(std::move(current_pose));
 }
 
 void DWA::dwaControl(void)
@@ -256,6 +287,8 @@ void DWA::dwaControl(void)
 
     // Publish the twist message
     publishTwist(v, omega);
+    // Publish the current robot pose
+    publishCurrentPose();
 }
 
 std::vector<double> DWA::calcDynamicWindow(void)

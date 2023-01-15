@@ -5,12 +5,14 @@
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include <vector>
 #include <stdio.h>
 #include <math.h>
 #include <algorithm>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "data_struct.hpp"
 
 
@@ -22,6 +24,7 @@ public:
   DWA(const rclcpp::NodeOptions & options);
   void obstacleCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
+  void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
 private:
   //制御パラメータ
@@ -32,7 +35,7 @@ private:
   std::pair<double, double> goal_;
   //障害物位置
   std::vector<std::pair<double, double>> obstacles_;
-
+  std::string frame_id_;
   //パラメータ設定
   void updateParameter(void);
 
@@ -63,6 +66,8 @@ private:
   //制御出力
   void publishTwist(double v, double omega);
 
+  void publishCurrentPose(void);
+
   //DWA実行
   void dwaControl(void);
   //Dynamic Window計算
@@ -70,7 +75,10 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr occupancy_grid_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_pub_;
+
 };
 
 } // namespace dwa_ros2
