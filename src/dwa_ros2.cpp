@@ -11,7 +11,7 @@ DWA::DWA(const rclcpp::NodeOptions & options) : Node("dwa_ros2", options)
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odom", 10, std::bind(&DWA::odomCallback, this, _1));
     twist_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     current_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("current_pose", 10);
-
+    predicted_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("predicted_path", 10);
     goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal_pose", 10, std::bind(&DWA::goalCallback, this, _1));
     // Initialize params
     updateParameter();
@@ -229,6 +229,7 @@ double DWA::calcSpeedCost(std::vector<State> trajectory)
 
 void DWA::publishTwist(double v, double omega)
 {
+    // If you reach the goal, stop.
     if(isArrivedAtGoal())
     {
         v = 0.0; omega = 0.0;
@@ -251,6 +252,26 @@ void DWA::publishCurrentPose(void)
     q.setRPY(0, 0, current_state_.theta); 
     current_pose->pose.orientation = tf2::toMsg(q);
     current_pose_pub_->publish(std::move(current_pose));
+}
+
+void DWA::publishPath(const std::vector<State>& trajectory)
+{
+    auto path = std::make_unique<nav_msgs::msg::Path>();
+
+    for (const auto& state : trajectory)
+    {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.pose.position.x = state.x;
+        pose.pose.position.y = state.y;
+        tf2::Quaternion q; 
+        q.setRPY(0, 0, state.theta); 
+        pose.pose.orientation = tf2::toMsg(q); 
+        path->poses.push_back(pose);
+    }
+
+    path->header.frame_id = frame_id_;
+    path->header.stamp = rclcpp::Clock().now();
+    predicted_path_pub_->publish(std::move(path));
 }
 
 bool DWA::isArrivedAtGoal(void)
@@ -301,6 +322,8 @@ void DWA::dwaControl(void)
     publishTwist(v, omega);
     // Publish the current robot pose
     publishCurrentPose();
+    // Publish the current best trajectory 
+    publishPath(best_trajectory);
 }
 
 std::vector<double> DWA::calcDynamicWindow(void)

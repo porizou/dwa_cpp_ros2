@@ -4,6 +4,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <vector>
@@ -68,8 +69,9 @@ private:
 
   void publishCurrentPose(void);
 
-  bool isArrivedAtGoal(void);
+  void publishPath(const std::vector<State>& trajectory);
 
+  bool isArrivedAtGoal(void);
 
   //DWA実行
   void dwaControl(void);
@@ -81,7 +83,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr current_pose_pub_;
-
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr predicted_path_pub_;
 };
 
 } // namespace dwa_ros2
