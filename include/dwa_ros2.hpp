@@ -68,6 +68,9 @@ private:
 
   void publishCurrentPose(void);
 
+  bool isArrivedAtGoal(void);
+
+
   //DWA実行
   void dwaControl(void);
   //Dynamic Window計算

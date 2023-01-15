@@ -120,6 +120,8 @@ void DWA::updateParameter(void)
     // Declare robot radius parameter
     param_.robot_radius = this->declare_parameter("robot_radius", 0.1);
 
+    param_.goal_tolerance = this->declare_parameter("goal_tolerance", 0.2);
+
     frame_id_ = this->declare_parameter("frame_id_", "odom");
 }
 
@@ -227,6 +229,10 @@ double DWA::calcSpeedCost(std::vector<State> trajectory)
 
 void DWA::publishTwist(double v, double omega)
 {
+    if(isArrivedAtGoal())
+    {
+        v = 0.0; omega = 0.0;
+    }
     //RCLCPP_INFO(this->get_logger(), "linear.x: %lf, angular.z: %lf", v, omega);
     auto twist = std::make_unique<geometry_msgs::msg::Twist>();
     twist->linear.x = v;
@@ -245,6 +251,12 @@ void DWA::publishCurrentPose(void)
     q.setRPY(0, 0, current_state_.theta); 
     current_pose->pose.orientation = tf2::toMsg(q);
     current_pose_pub_->publish(std::move(current_pose));
+}
+
+bool DWA::isArrivedAtGoal(void)
+{
+    double distance = std::sqrt(std::pow(current_state_.x - goal_.first, 2) + std::pow(current_state_.y - goal_.second, 2));
+    return distance <= param_.goal_tolerance ? true : false;
 }
 
 void DWA::dwaControl(void)

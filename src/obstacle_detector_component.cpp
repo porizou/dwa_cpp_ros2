@@ -40,7 +40,7 @@ ObstacleDetector::~ObstacleDetector()
 
 void ObstacleDetector::laserCallback(const sensor_msgs::msg::LaserScan::SharedPtr _msg)
 {
-    RCLCPP_INFO(this->get_logger(), "I heard: '%f' '%f'", _msg->ranges[0], _msg->ranges[100]);
+    //RCLCPP_INFO(this->get_logger(), "I heard: '%f' '%f'", _msg->ranges[0], _msg->ranges[100]);
     // LaserScanデータから点群を作成する
     std::vector<std::pair<double, double>> points;
     double angle = _msg->angle_min;
