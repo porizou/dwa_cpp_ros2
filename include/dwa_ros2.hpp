@@ -85,8 +85,6 @@ private:
 
   bool isArrivedAtGoal(void);
 
-  void transformObstacles(void);
-
   //DWA実行
   void dwaControl(void);
   //Dynamic Window計算

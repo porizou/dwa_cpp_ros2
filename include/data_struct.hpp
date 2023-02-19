@@ -5,33 +5,35 @@
 
 struct State
 {
-    double x;        //x軸位置[m]
-    double y;        //y軸位置[m]
-    double theta;    //姿勢[rad]
-    double v;        //x軸速度[m/s]
-    double omega;    //回転速度[rad/s]
+    double x; // x-axis position [m]
+    double y; // y-axis position [m]
+    double theta; // posture [rad]
+    double v; // x-axis velocity [m/s]
+    double omega; // angular velocity [rad/s]
 };
 
 struct Parameter
 {
-    float max_speed; //最大X軸速度[m/s]
-    float min_speed; //最小X軸速度[m/s]
-    float max_omega; //最大旋回角速度[rad/s]
+    double max_speed; // maximum x-axis velocity [m/s]
+    double min_speed; // minimum x-axis velocity [m/s]
+    double max_omega; // maximum angular velocity [rad/s]
 
-    float max_accel; //最大加速度[m/ss]
-    float max_accel_omega; //最大旋回角加速度[rad/ss]
+    double max_accel; // maximum acceleration [m/s^2]
+    double max_accel_omega; // maximum angular acceleration [rad/s^2]
 
-    float v_resolution; //速度分解能[m/s]
-    float omega_resolution; //旋回角速度分解能[rad/s]
+    double v_resolution; // velocity resolution [m/s]
+    double omega_resolution; // angular velocity resolution [rad/s]
 
-    float predict_time; //軌道予測時間[s]
-    float dt; //軌道予測の時間間隔[s]
+    double predict_time; // trajectory prediction time [s]
+    double dt; // time interval for trajectory prediction [s]
 
-    double goal_cost_gain;    //ゴールコストゲイン
-    double speed_cost_gain;   //スピードコストゲイン
-    double obstacle_cost_gain; //障害物コストゲイン
+    double goal_cost_gain;    // goal cost gain
+    double speed_cost_gain;   // speed cost gain
+    double obstacle_cost_gain; // obstacle cost gain
 
-    float robot_radius;  //ロボット半径[m]
+    double robot_radius;  // robot radius [m]
+
+    double goal_tolerance; // threshold for determining arrival at the goal
 };
 
 #endif

@@ -1,6 +1,8 @@
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     container = ComposableNodeContainer(
@@ -22,4 +24,12 @@ def generate_launch_description():
             ],
             output='both',
     )
-    return launch.LaunchDescription([container])
+    rviz2 = Node(package='rviz2',
+                    executable='rviz2',
+                    name='rviz2',
+                    arguments=[
+                        '-d',
+                        get_package_share_directory('dwa_ros2')
+                            + '/dwa.rviz'],
+                    )
+    return launch.LaunchDescription([container, rviz2])
