@@ -46,7 +46,8 @@ private:
 
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
-  
+  rclcpp::TimerBase::SharedPtr timer_;
+
   //パラメータ設定
   void initParameter(void);
   //パラメータ更新

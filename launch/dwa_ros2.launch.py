@@ -20,9 +20,9 @@ def generate_launch_description():
                     package='dwa_ros2',
                     plugin='dwa_ros2::DWA',
                     name='dwa_node',
-                    extra_arguments=[{'use_intra_process_comms': True}])
+                    extra_arguments=[{'use_intra_process_comms': True}],
+                )
             ],
-            output='both',
     )
     rviz2 = Node(package='rviz2',
                     executable='rviz2',
@@ -31,5 +31,6 @@ def generate_launch_description():
                         '-d',
                         get_package_share_directory('dwa_ros2')
                             + '/dwa.rviz'],
+                    output='screen'
                     )
     return launch.LaunchDescription([container, rviz2])
